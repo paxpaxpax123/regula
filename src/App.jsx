@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 
 /* =======================================================================
-   REGULA v3 — Reprendre le contrôle : foi, corps, esprit, maîtrise.
+   REGULA v4 — Reprendre le contrôle : foi, corps, esprit, maîtrise.
    Quatre piliers personnalisables. Un blason qui s'allume. Un rang qui monte.
+   Le Rempart (anti-scroll). La Source (beau / sacré / savoir). Le Relèvement.
    Bilan vitalité. Examen du soir. Tes données t'appartiennent.
    ======================================================================= */
 
-const STORAGE_KEY = 'regula-v3';
+const STORAGE_KEY = 'regula-v3'; // clé inchangée — tes données v3 sont conservées
 
 /* ============== DONNÉES STATIQUES ============== */
 
@@ -17,9 +18,9 @@ const MONTH_NAMES = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'jui
 // Piliers par défaut — l'utilisateur peut tout éditer dans Réglages
 const DEFAULT_PILLARS = [
   { key: 'priere', label: 'Prière', sub: 'je me suis tenu devant Dieu', icon: 'priere' },
-  { key: 'sport', label: 'Sport', sub: 'j\u2019ai entraîné mon corps', icon: 'sport' },
-  { key: 'nutrition', label: 'Nutrition', sub: 'j\u2019ai mangé avec mesure', icon: 'nutrition' },
-  { key: 'controle', label: 'Contrôle', sub: 'j\u2019ai tenu face aux compulsions', icon: 'controle' },
+  { key: 'sport', label: 'Sport', sub: 'j’ai entraîné mon corps', icon: 'sport' },
+  { key: 'nutrition', label: 'Nutrition', sub: 'j’ai mangé avec mesure', icon: 'nutrition' },
+  { key: 'controle', label: 'Contrôle', sub: 'j’ai tenu face aux compulsions', icon: 'controle' },
 ];
 
 const RANKS = [
@@ -33,38 +34,38 @@ const RANKS = [
 ];
 
 const LITURGY = {
-  '01-01': { saint: 'Sainte Marie, Mère de Dieu', quote: 'Qu\u2019il me soit fait selon ta parole.', author: 'Lc 1, 38' },
-  '01-28': { saint: 'Saint Thomas d\u2019Aquin', quote: 'Je ne veux rien d\u2019autre, Seigneur, que Toi-même.', author: 'Thomas d\u2019Aquin' },
+  '01-01': { saint: 'Sainte Marie, Mère de Dieu', quote: 'Qu’il me soit fait selon ta parole.', author: 'Lc 1, 38' },
+  '01-28': { saint: 'Saint Thomas d’Aquin', quote: 'Je ne veux rien d’autre, Seigneur, que Toi-même.', author: 'Thomas d’Aquin' },
   '03-19': { saint: 'Saint Joseph', quote: 'Ite ad Joseph — Allez à Joseph.', author: 'Gn 41, 55' },
-  '03-25': { saint: 'Annonciation', quote: 'Le Verbe s\u2019est fait chair.', author: 'Jn 1, 14' },
-  '04-23': { saint: 'Saint Georges, martyr', quote: 'Le courage n\u2019est pas l\u2019absence de peur, mais la victoire sur elle.', author: 'attribué' },
+  '03-25': { saint: 'Annonciation', quote: 'Le Verbe s’est fait chair.', author: 'Jn 1, 14' },
+  '04-23': { saint: 'Saint Georges, martyr', quote: 'Le courage n’est pas l’absence de peur, mais la victoire sur elle.', author: 'attribué' },
   '04-29': { saint: 'Sainte Catherine de Sienne', quote: 'Soyez qui vous êtes, et vous mettrez le monde en feu.', author: 'Catherine de Sienne' },
   '07-11': { saint: 'Saint Benoît', quote: 'Ora et labora — Prie et travaille.', author: 'Règle de saint Benoît' },
   '07-31': { saint: 'Saint Ignace de Loyola', quote: 'Ad maiorem Dei gloriam.', author: 'Ignace de Loyola' },
-  '08-04': { saint: 'Saint Jean-Marie Vianney', quote: 'La prière, c\u2019est l\u2019avant-goût du ciel.', author: 'Curé d\u2019Ars' },
+  '08-04': { saint: 'Saint Jean-Marie Vianney', quote: 'La prière, c’est l’avant-goût du ciel.', author: 'Curé d’Ars' },
   '08-15': { saint: 'Assomption de la Vierge Marie', quote: 'Mon âme exalte le Seigneur.', author: 'Magnificat' },
   '09-29': { saint: 'Saint Michel Archange', quote: 'Qui est comme Dieu ?', author: 'Mi-ka-El' },
-  '10-04': { saint: 'Saint François d\u2019Assise', quote: 'Seigneur, fais de moi un instrument de ta paix.', author: 'François d\u2019Assise' },
-  '10-15': { saint: 'Sainte Thérèse d\u2019Avila', quote: 'Nada te turbe — Que rien ne te trouble.', author: 'Thérèse d\u2019Avila' },
-  '10-22': { saint: 'Saint Jean-Paul II', quote: 'N\u2019ayez pas peur.', author: 'Jean-Paul II' },
+  '10-04': { saint: 'Saint François d’Assise', quote: 'Seigneur, fais de moi un instrument de ta paix.', author: 'François d’Assise' },
+  '10-15': { saint: 'Sainte Thérèse d’Avila', quote: 'Nada te turbe — Que rien ne te trouble.', author: 'Thérèse d’Avila' },
+  '10-22': { saint: 'Saint Jean-Paul II', quote: 'N’ayez pas peur.', author: 'Jean-Paul II' },
   '11-01': { saint: 'Toussaint', quote: 'Heureux les cœurs purs : ils verront Dieu.', author: 'Mt 5, 8' },
   '12-08': { saint: 'Immaculée Conception', quote: 'Je suis la servante du Seigneur.', author: 'Lc 1, 38' },
-  '12-14': { saint: 'Saint Jean de la Croix', quote: 'Au soir de la vie, nous serons jugés sur l\u2019amour.', author: 'Jean de la Croix' },
-  '12-25': { saint: 'Nativité du Seigneur', quote: 'Et le Verbe s\u2019est fait chair.', author: 'Jn 1, 14' },
+  '12-14': { saint: 'Saint Jean de la Croix', quote: 'Au soir de la vie, nous serons jugés sur l’amour.', author: 'Jean de la Croix' },
+  '12-25': { saint: 'Nativité du Seigneur', quote: 'Et le Verbe s’est fait chair.', author: 'Jn 1, 14' },
 };
 
 const DAILY_QUOTES = [
-  { quote: 'Cherchez d\u2019abord le Royaume de Dieu.', author: 'Mt 6, 33' },
+  { quote: 'Cherchez d’abord le Royaume de Dieu.', author: 'Mt 6, 33' },
   { quote: 'Je puis tout en celui qui me fortifie.', author: 'Ph 4, 13' },
   { quote: 'Hors de moi, vous ne pouvez rien faire.', author: 'Jn 15, 5' },
   { quote: 'Veillez et priez, pour ne pas entrer en tentation.', author: 'Mt 26, 41' },
-  { quote: 'L\u2019esprit est ardent, mais la chair est faible.', author: 'Mt 26, 41' },
+  { quote: 'L’esprit est ardent, mais la chair est faible.', author: 'Mt 26, 41' },
   { quote: 'Tout est grâce.', author: 'Ste Thérèse de Lisieux' },
-  { quote: 'Ma vocation, c\u2019est l\u2019amour.', author: 'Ste Thérèse de Lisieux' },
-  { quote: 'Verso l\u2019alto — Vers les sommets.', author: 'Bhx Pier Giorgio Frassati' },
-  { quote: 'Notre cœur est sans repos tant qu\u2019il ne repose en Toi.', author: 'Augustin' },
+  { quote: 'Ma vocation, c’est l’amour.', author: 'Ste Thérèse de Lisieux' },
+  { quote: 'Verso l’alto — Vers les sommets.', author: 'Bhx Pier Giorgio Frassati' },
+  { quote: 'Notre cœur est sans repos tant qu’il ne repose en Toi.', author: 'Augustin' },
   { quote: 'Rien par force, tout par amour.', author: 'St François de Sales' },
-  { quote: 'Servir Dieu, c\u2019est régner.', author: 'Prière du missel' },
+  { quote: 'Servir Dieu, c’est régner.', author: 'Prière du missel' },
   { quote: 'Faites tout pour la gloire de Dieu.', author: '1 Co 10, 31' },
   { quote: 'Veille sur ton cœur : de lui jaillit la vie.', author: 'Pr 4, 23' },
   { quote: 'Il faut que Lui grandisse et que je diminue.', author: 'Jn 3, 30' },
@@ -77,8 +78,104 @@ const DAILY_QUOTES = [
 const VITALITY = [
   { key: 'sommeil', label: 'Sommeil', q: 'As-tu dormi 7h+ ?' },
   { key: 'soleil', label: 'Lumière', q: 'Lumière du jour le matin ?' },
-  { key: 'force', label: 'Force', q: 'Effort intense aujourd\u2019hui ?' },
+  { key: 'force', label: 'Force', q: 'Effort intense aujourd’hui ?' },
   { key: 'jeune', label: 'Sobriété', q: 'Pas de sucre / alcool en excès ?' },
+];
+
+/* ---- LE REMPART : citations qui tirent vers le haut ---- */
+const REMPART_QUOTES = [
+  { text: 'Veille et prie, pour ne pas entrer en tentation.', author: 'Mt 26, 41' },
+  { text: 'Sois sobre, veille : ton adversaire rôde comme un lion.', author: '1 P 5, 8' },
+  { text: 'Combats le bon combat de la foi.', author: '1 Tm 6, 12' },
+  { text: 'Celui qui se maîtrise vaut mieux que celui qui prend des villes.', author: 'Pr 16, 32' },
+  { text: 'Je puis tout en celui qui me fortifie.', author: 'Ph 4, 13' },
+  { text: 'Verso l’alto — vers les sommets.', author: 'Bhx Pier Giorgio Frassati' },
+  { text: 'Tu as pouvoir sur ton esprit, non sur les événements. Comprends-le, et tu trouveras la force.', author: 'Marc Aurèle' },
+  { text: 'La discipline est la plus haute forme de liberté.', author: 'maxime' },
+  { text: 'Fais ce que dois, advienne que pourra.', author: 'maxime' },
+  { text: 'Le courage, c’est de tenir une minute de plus.', author: 'maxime' },
+  { text: 'On ne devient pas grand par ce qu’on consomme, mais par ce qu’on refuse.', author: 'Regula' },
+  { text: 'L’envie est une vague. Elle se brise si tu ne la nourris pas.', author: 'Regula' },
+  { text: 'Que vos reins soient ceints et vos lampes allumées.', author: 'Lc 12, 35' },
+  { text: 'Veille sur ton cœur : de lui jaillit la vie.', author: 'Pr 4, 23' },
+  { text: 'Il faut que Lui grandisse et que je diminue.', author: 'Jn 3, 30' },
+  { text: 'Ce que tu fuis te poursuit ; ce que tu affrontes s’efface.', author: 'maxime' },
+];
+
+/* ---- LE REMPART : missions concrètes pour casser l’élan ---- */
+const REMPART_MISSIONS = [
+  // Corps
+  'Lève-toi et fais 10 pompes. Maintenant.',
+  'Vingt squats, ici, tout de suite.',
+  'Gainage : 30 secondes de planche.',
+  'Monte et descends un étage d’escaliers.',
+  // Souffle
+  'Respiration 4-7-8 : inspire 4 s, retiens 7 s, expire 8 s. Trois fois.',
+  'Cohérence cardiaque : une minute, six respirations lentes.',
+  'Étire ta nuque et tes épaules, lentement, les yeux fermés.',
+  // Environnement
+  'Lève-toi et fais un tour complet de la pièce.',
+  'Va boire un grand verre d’eau, doucement.',
+  'Ouvre la fenêtre et prends trois respirations d’air frais.',
+  'Range trois objets sur ton bureau.',
+  'Sors deux minutes prendre la lumière du jour.',
+  // Sacré / beau
+  'Une oraison jaculatoire : « Jésus, j’ai confiance en Toi. »',
+  'Fais le signe de croix, lentement, en pensant à ce que tu fais.',
+  'Lis un verset au hasard, à voix basse.',
+  'Écoute un seul beau morceau — puis reviens.',
+  // Réancrage cognitif (les plus efficaces)
+  'Écris en une phrase ta prochaine action concrète sur ta tâche.',
+  'Note pourquoi cette tâche compte vraiment pour toi.',
+  'Ferme les yeux 30 secondes et vois ta tâche terminée.',
+];
+
+/* ---- LA SOURCE : le beau ---- */
+const SOURCE_BEAU = [
+  { tag: 'Poésie', title: '« Correspondances » — Baudelaire', body: '« La Nature est un temple où de vivants piliers laissent parfois sortir de confuses paroles. » Lis le poème entier ce soir, à voix haute.', author: 'Baudelaire' },
+  { tag: 'Poésie', title: '« Demain, dès l’aube » — Victor Hugo', body: 'Un père marche vers la tombe de sa fille. La douleur la plus nue dite avec la plus grande retenue. Cherche-le, lis-le lentement.', author: 'Hugo' },
+  { tag: 'Peinture', title: 'La Vocation de saint Matthieu — Le Caravage', body: 'Un rayon traverse la pénombre et désigne un homme qui ne s’y attendait pas. Toute la grâce tient dans ce doigt tendu. Regarde-la en grand.', author: 'Caravage, 1600' },
+  { tag: 'Peinture', title: 'L’Annonciation — Fra Angelico', body: 'L’or, le silence, l’inclinaison des corps. La peinture comme prière. Cherche la fresque du couvent San Marco, à Florence.', author: 'Fra Angelico' },
+  { tag: 'Musique', title: 'Miserere — Allegri', body: 'Des voix qui montent jusqu’à un aigu suspendu, presque insoutenable de beauté. Mets-le, ferme les yeux, ne fais rien d’autre.', author: 'Allegri, XVIIᵉ s.' },
+  { tag: 'Musique', title: 'Suites pour violoncelle — Bach', body: 'Un seul instrument, et pourtant un monde entier. Le Prélude de la première suite suffit à remettre l’âme d’aplomb.', author: 'J.-S. Bach' },
+  { tag: 'Architecture', title: 'La Sainte-Chapelle, Paris', body: 'Quinze mètres de vitraux qui changent la pierre en lumière. Les hommes du XIIIᵉ siècle bâtissaient pour le ciel, pas pour eux.', author: null },
+  { tag: 'Architecture', title: 'La cathédrale de Chartres', body: 'Le bleu de ses verrières n’a jamais été reproduit. On vient de loin se tenir simplement dans cette lumière. Mets-la sur ta liste.', author: null },
+  { tag: 'Poésie', title: '« Le Dormeur du val » — Rimbaud', body: 'Un jeune soldat semble dormir dans l’herbe. Le dernier vers retourne tout. Rimbaud avait seize ans. Relis-le.', author: 'Rimbaud' },
+  { tag: 'Nature', title: 'Le lever du jour', body: 'Demain matin, avant l’écran, va voir la lumière monter. C’est gratuit, c’est neuf chaque jour, et presque personne ne le regarde.', author: null },
+  { tag: 'Musique', title: 'Spiegel im Spiegel — Arvo Pärt', body: 'Trois notes, du silence, et le temps qui se suspend. La beauté n’a pas besoin d’être compliquée pour être immense.', author: 'Arvo Pärt' },
+  { tag: 'Sculpture', title: 'La Pietà — Michel-Ange', body: 'Le marbre devenu chair, le drapé, le visage d’une mère trop jeune. Il l’a sculptée à vingt-quatre ans. Contemple-la.', author: 'Michel-Ange, 1499' },
+];
+
+/* ---- LA SOURCE : le sacré ---- */
+const SOURCE_SACRE = [
+  { tag: 'Évangile', body: '« Venez à moi, vous tous qui peinez sous le poids du fardeau, et moi, je vous donnerai le repos. » Confie-Lui ce qui pèse aujourd’hui.', author: 'Mt 11, 28' },
+  { tag: 'Psaume', body: '« Le Seigneur est mon berger : je ne manque de rien. » Relis-le lentement, comme une respiration.', author: 'Ps 22' },
+  { tag: 'Saint', body: '« Tout est grâce. » Même cette journée ordinaire. Même l’effort qui coûte.', author: 'Ste Thérèse de Lisieux' },
+  { tag: 'Saint', body: '« Notre cœur est sans repos tant qu’il ne repose en Toi. » Là est l’origine de ton inquiétude — et son remède.', author: 'St Augustin' },
+  { tag: 'Saint', body: '« Que rien ne te trouble, que rien ne t’effraie : Dieu seul suffit. »', author: 'Ste Thérèse d’Avila' },
+  { tag: 'Prière', body: '« Ad maiorem Dei gloriam » — pour la plus grande gloire de Dieu. Offre ce que tu fais aujourd’hui.', author: 'St Ignace de Loyola' },
+  { tag: 'Épître', body: '« Tout ce qui est vrai, noble, juste, pur, aimable — pensez à cela. » Choisis tes pensées comme on choisit sa nourriture.', author: 'Ph 4, 8' },
+  { tag: 'Sagesse', body: '« Il y a un temps pour tout. » Reçois le moment présent sans le fuir.', author: 'Qo 3, 1' },
+  { tag: 'Saint', body: '« Seigneur, fais de moi un instrument de ta paix. » Commence par la paix en toi.', author: 'St François d’Assise' },
+  { tag: 'Évangile', body: '« Cherchez d’abord le Royaume de Dieu, et le reste vous sera donné par surcroît. »', author: 'Mt 6, 33' },
+  { tag: 'Mystique', body: '« Au soir de la vie, nous serons jugés sur l’amour. »', author: 'St Jean de la Croix' },
+  { tag: 'Psaume', body: '« Crée en moi un cœur pur, ô mon Dieu, renouvelle et raffermis au fond de moi mon esprit. »', author: 'Ps 50' },
+];
+
+/* ---- LA SOURCE : le savoir ---- */
+const SOURCE_SAVOIR = [
+  { tag: 'Philosophie', body: '« L’homme n’est qu’un roseau, le plus faible de la nature ; mais c’est un roseau pensant. » Toute notre dignité tient dans la pensée.', author: 'Pascal' },
+  { tag: 'Sagesse antique', body: '« Connais-toi toi-même. » Gravé au fronton de Delphes — le plus court et le plus difficile des programmes.', author: 'inscription delphique' },
+  { tag: 'Stoïcisme', body: 'Entre le stimulus et la réaction, il y a un espace. Dans cet espace réside ta liberté. Élargis-le.', author: 'd’après V. Frankl' },
+  { tag: 'Science', body: 'Chaque atome de fer de ton sang a été forgé au cœur d’une étoile morte. Tu es, littéralement, fait de poussière d’étoiles.', author: 'astrophysique' },
+  { tag: 'Philosophie', body: '« Ce qui ne me tue pas me rend plus fort » — mais seulement si j’en tire une leçon. La souffrance brute n’enseigne rien ; la souffrance méditée, beaucoup.', author: 'd’après Nietzsche' },
+  { tag: 'Histoire', body: 'Les bâtisseurs de cathédrales savaient qu’ils ne verraient jamais l’édifice achevé. Travailler pour ce qui te dépasse : voilà une vie noble.', author: 'sagesse médiévale' },
+  { tag: 'Savoir', body: 'Le cerveau adulte reste plastique : chaque habitude répétée trace un sillon. Tu n’es pas figé — tu te sculptes chaque jour.', author: 'neurosciences' },
+  { tag: 'Philosophie', body: '« Deviens ce que tu es. » Non pas t’inventer, mais déployer ce que tu portes déjà.', author: 'Pindare' },
+  { tag: 'Sagesse', body: 'La liberté n’est pas de faire ce qu’on veut, mais de vouloir ce qu’on fait. Le maître de soi est plus libre que l’esclave de ses envies.', author: 'tradition' },
+  { tag: 'Science', body: 'Il y a plus de connexions dans ton cerveau que d’étoiles dans la Voie lactée. L’instrument que tu négliges en scrollant est le plus complexe de l’univers connu.', author: 'neurosciences' },
+  { tag: 'Philosophie', body: '« Une vie sans examen ne vaut pas la peine d’être vécue. » C’est pourquoi tu fais ton examen chaque soir.', author: 'Socrate' },
+  { tag: 'Sagesse antique', body: '« Festina lente » — hâte-toi lentement. La vraie vitesse naît de la constance, pas de la précipitation.', author: 'devise d’Auguste' },
 ];
 
 /* ============== HELPERS ============== */
@@ -88,12 +185,13 @@ const toISODate = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1
 const formatLongDate = (d = new Date()) => `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
 const keyMMDD = (d = new Date()) => `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const haptic = (ms = 12) => { try { if (navigator.vibrate) navigator.vibrate(ms); } catch {} };
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const dayOfYear = (d = new Date()) => Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
 
 const getLiturgy = (d = new Date()) => {
   const k = keyMMDD(d);
   if (LITURGY[k]) return LITURGY[k];
-  const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
-  const q = DAILY_QUOTES[dayOfYear % DAILY_QUOTES.length];
+  const q = DAILY_QUOTES[dayOfYear(d) % DAILY_QUOTES.length];
   return { saint: 'Férie du temps ordinaire', quote: q.quote, author: q.author };
 };
 
@@ -143,15 +241,19 @@ const cleanStreak = (tasks, controlKey) => {
   return streak;
 };
 
+const totalRempart = (rempart) => Object.values(rempart || {}).reduce((a, b) => a + (b || 0), 0);
+
 /* ============== STORAGE ============== */
 
 const defaultState = () => ({
   tasks: {},
   checkins: {},
   vitality: {},
+  rempart: {},      // { 'YYYY-MM-DD': nombre de fois où tu as tenu }
+  relevements: {},  // { 'YYYY-MM-DD': { trigger, intention, note, savedAt } }
   pillars: DEFAULT_PILLARS,
   onboarded: false,
-  version: 3,
+  version: 4,
 });
 
 const load = () => {
@@ -193,9 +295,11 @@ body {
 }
 
 /* Header */
-.header { padding: 22px 22px 14px; text-align: center; }
+.header { padding: 22px 22px 14px; text-align: center; position: relative; }
 .h-date { font-family: 'Fraunces', serif; font-style: italic; font-size: 12px; color: var(--muted); letter-spacing: .18em; }
 .h-saint { font-family: 'Fraunces', serif; font-size: 17px; color: var(--cream-dim); margin-top: 6px; letter-spacing: .02em; }
+.gear-btn { position: absolute; top: 18px; right: 16px; background: transparent; border: 0; color: var(--muted); cursor: pointer; padding: 8px; line-height: 0; }
+.gear-btn:active { color: var(--gold); }
 
 /* Badge */
 .badge-wrap { display: flex; flex-direction: column; align-items: center; padding: 6px 0 2px; position: relative; }
@@ -233,10 +337,10 @@ body {
 
 /* Quick actions */
 .quick-actions { padding: 22px 22px 0; display: flex; flex-direction: column; gap: 8px; }
-.qa-row { display: flex; gap: 8px; }
-.qa-btn { flex: 1; padding: 13px 14px; background: transparent; border: 1px solid var(--line-2); border-radius: 2px; font-size: 13px; color: var(--cream-dim); text-align: center; cursor: pointer; text-decoration: none; display: block; letter-spacing: .04em; transition: all .15s; }
+.qa-btn { flex: 1; padding: 14px 14px; background: transparent; border: 1px solid var(--line-2); border-radius: 2px; font-size: 13px; color: var(--cream-dim); text-align: center; cursor: pointer; text-decoration: none; display: block; letter-spacing: .04em; transition: all .15s; width: 100%; }
 .qa-btn:active { background: var(--bg-2); }
 .qa-btn.urge { border-color: var(--red-deep); color: var(--red); }
+.qa-btn.relever { border-color: var(--gold-deep); color: var(--gold-dim); }
 
 .footer-note { margin: 28px 22px 0; padding: 16px 0; border-top: 1px solid var(--line); font-family: 'Fraunces', serif; font-style: italic; font-size: 12px; color: var(--muted); line-height: 1.5; text-align: center; }
 
@@ -245,6 +349,17 @@ body {
 .page-title { font-family: 'Fraunces', serif; font-size: 26px; color: var(--cream); margin-bottom: 6px; }
 .page-sub { font-family: 'Fraunces', serif; font-style: italic; color: var(--muted); font-size: 14px; margin-bottom: 22px; line-height: 1.4; }
 .section-h { font-family: 'Fraunces', serif; font-style: italic; font-size: 13px; color: var(--gold); letter-spacing: .06em; margin: 26px 0 12px; }
+.back-link { font-family: 'Fraunces', serif; font-style: italic; font-size: 13px; color: var(--muted); background: transparent; border: 0; cursor: pointer; padding: 0 0 14px; }
+
+/* Source */
+.source-card { margin-bottom: 14px; padding: 20px 22px; background: linear-gradient(180deg, rgba(212,168,74,.04), transparent), var(--bg-2); border: 1px solid var(--line); border-left: 2px solid var(--gold-deep); border-radius: 2px; }
+.source-kicker { font-family: 'Fraunces', serif; font-style: italic; font-size: 12px; color: var(--gold); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; }
+.source-title { font-family: 'Fraunces', serif; font-size: 16px; color: var(--cream); margin-bottom: 8px; line-height: 1.3; }
+.source-body { font-family: 'Fraunces', serif; font-size: 15px; line-height: 1.55; color: var(--cream-dim); }
+.source-author { margin-top: 10px; font-size: 11px; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; }
+
+/* Relèvement */
+.rel-count { font-family: 'Fraunces', serif; font-style: italic; font-size: 13px; color: var(--gold-dim); letter-spacing: .04em; }
 
 /* Week */
 .week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 24px; }
@@ -276,7 +391,7 @@ body {
 .vit-q { font-family: 'Fraunces', serif; font-style: italic; font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.3; }
 .vit-score { text-align: center; font-family: 'Fraunces', serif; font-style: italic; color: var(--muted); font-size: 13px; margin-top: 14px; }
 
-/* Evening */
+/* Evening / forms */
 .even-step { padding: 22px 0; border-bottom: 1px solid var(--line); }
 .even-step:first-of-type { padding-top: 4px; }
 .even-step:last-of-type { border-bottom: 0; }
@@ -313,17 +428,21 @@ body {
 .nav-btn.active { color: var(--gold); }
 .nav-btn.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 16px; height: 1px; background: var(--gold); }
 
-/* Urge overlay */
-.urge-overlay { position: fixed; inset: 0; background: #050301; color: var(--cream); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; padding: 32px; text-align: center; animation: fadeIn .4s ease; }
+/* Le Rempart (overlay) */
+.urge-overlay { position: fixed; inset: 0; background: #050301; color: var(--cream); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; padding: 32px; text-align: center; animation: fadeIn .4s ease; overflow-y: auto; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.urge-label { font-family: 'Fraunces', serif; font-style: italic; font-size: 13px; color: var(--gold-dim); letter-spacing: .15em; margin-bottom: 14px; text-transform: uppercase; }
-.urge-instruction { font-family: 'Fraunces', serif; font-weight: 300; font-size: 22px; line-height: 1.45; margin-bottom: 42px; color: var(--cream); max-width: 320px; white-space: pre-line; }
-.breath-circle { width: 200px; height: 200px; border-radius: 50%; border: 1px solid rgba(212,168,74,.28); display: flex; align-items: center; justify-content: center; margin-bottom: 38px; animation: breath 8s ease-in-out infinite; }
+.urge-label { font-family: 'Fraunces', serif; font-style: italic; font-size: 13px; color: var(--gold-dim); letter-spacing: .15em; margin-bottom: 22px; text-transform: uppercase; }
+.breath-circle { width: 200px; height: 200px; border-radius: 50%; border: 1px solid rgba(212,168,74,.28); display: flex; align-items: center; justify-content: center; margin-bottom: 30px; animation: breath 8s ease-in-out infinite; }
 .breath-inner { width: 60%; height: 60%; border-radius: 50%; background: rgba(212,168,74,.06); border: 1px solid rgba(212,168,74,.2); }
 @keyframes breath { 0%,100% { transform: scale(1); border-color: rgba(212,168,74,.18); } 50% { transform: scale(1.2); border-color: rgba(212,168,74,.55); } }
 .urge-countdown { font-family: 'Fraunces', serif; font-size: 52px; font-weight: 300; margin-bottom: 10px; font-variant-numeric: tabular-nums; color: var(--cream); }
-.urge-cta { margin-top: 38px; background: transparent; border: 1px solid rgba(242,233,215,.3); color: var(--cream-dim); padding: 13px 28px; border-radius: 2px; font-size: 13px; cursor: pointer; letter-spacing: .08em; text-transform: uppercase; }
+.urge-cta { margin-top: 30px; background: transparent; border: 1px solid rgba(242,233,215,.3); color: var(--cream-dim); padding: 13px 28px; border-radius: 2px; font-size: 13px; cursor: pointer; letter-spacing: .08em; text-transform: uppercase; }
 .urge-cta.primary { background: var(--gold); color: var(--bg); border-color: var(--gold); font-weight: 600; }
+.rempart-quote { font-family: 'Fraunces', serif; font-style: italic; font-weight: 300; font-size: 21px; line-height: 1.5; color: var(--cream); max-width: 340px; margin-bottom: 30px; }
+.rempart-quote-author { display: block; font-style: normal; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-dim); margin-top: 14px; }
+.rempart-mission { font-family: 'Fraunces', serif; font-weight: 300; font-size: 23px; line-height: 1.45; color: var(--cream); max-width: 330px; margin-bottom: 8px; white-space: pre-line; }
+.rempart-wins { margin-top: 24px; font-family: 'Fraunces', serif; font-style: italic; font-size: 14px; color: var(--gold-dim); letter-spacing: .04em; }
+.rempart-mark { font-family: 'Fraunces', serif; font-size: 40px; color: var(--gold); margin-bottom: 26px; }
 
 /* Rank up */
 .rankup { position: fixed; inset: 0; background: rgba(5,3,1,.94); z-index: 900; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; animation: fadeIn .5s ease; }
@@ -405,6 +524,13 @@ const Icon = ({ name }) => {
   }
 };
 
+const GearIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" />
+  </svg>
+);
+
 /* ============== ONBOARDING ============== */
 
 function Onboarding({ onDone }) {
@@ -452,7 +578,7 @@ function Onboarding({ onDone }) {
 
 /* ============== TODAY ============== */
 
-function TodayView({ state, setState, openUrge, onRankUp }) {
+function TodayView({ state, setState, openUrge, openRelevement, onRankUp }) {
   const today = toISODate();
   const dayTasks = state.tasks[today] || {};
   const pillars = state.pillars;
@@ -510,16 +636,139 @@ function TodayView({ state, setState, openUrge, onRankUp }) {
       </div>
 
       <div className="quick-actions">
-        <div className="qa-row">
-          <a className="qa-btn" href="shortcuts://run-shortcut?name=Pomodoro%2025">Focus 25 min</a>
-          <a className="qa-btn" href="shortcuts://run-shortcut?name=Laudes">Laudes</a>
-        </div>
         <button className="qa-btn urge" onClick={openUrge}>J’ai envie de scroller</button>
+        <button className="qa-btn relever" onClick={openRelevement}>Me relever</button>
       </div>
 
       <div className="footer-note">
         Règle des 60 minutes : pas d’écran la première heure après le réveil,<br />ni la dernière heure avant le coucher.
       </div>
+    </div>
+  );
+}
+
+/* ============== LA SOURCE ============== */
+
+function SourceCard({ kicker, item }) {
+  return (
+    <div className="source-card">
+      <div className="source-kicker">{kicker}{item.tag ? ` · ${item.tag}` : ''}</div>
+      {item.title && <div className="source-title">{item.title}</div>}
+      <div className="source-body">{item.body}</div>
+      {item.author && <div className="source-author">— {item.author}</div>}
+    </div>
+  );
+}
+
+function SourceView() {
+  const [offset, setOffset] = useState(0);
+  const idx = dayOfYear(new Date()) + offset;
+  const beau = SOURCE_BEAU[idx % SOURCE_BEAU.length];
+  const sacre = SOURCE_SACRE[idx % SOURCE_SACRE.length];
+  const savoir = SOURCE_SAVOIR[idx % SOURCE_SAVOIR.length];
+
+  return (
+    <div className="page">
+      <div className="page-title">La Source</div>
+      <div className="page-sub">
+        Ce dont tu te nourris te façonne. Bois ici chaque jour : le beau, le sacré, le savoir.
+      </div>
+      <SourceCard kicker="Le Beau" item={beau} />
+      <SourceCard kicker="Le Sacré" item={sacre} />
+      <SourceCard kicker="Le Savoir" item={savoir} />
+      <button className="set-btn" style={{ width: '100%', marginTop: 8 }} onClick={() => { haptic(10); setOffset((o) => o + 1); }}>
+        Nouvelle inspiration
+      </button>
+      <div style={{ height: 24 }} />
+    </div>
+  );
+}
+
+/* ============== LE RELÈVEMENT ============== */
+
+function RelevementView({ state, setState, setView }) {
+  const today = toISODate();
+  const existing = state.relevements?.[today];
+  const [mode, setMode] = useState(existing ? 'history' : 'form');
+  const [form, setForm] = useState(existing || { trigger: '', intention: '', note: '' });
+  const count = Object.keys(state.relevements || {}).length;
+  const entries = useMemo(() =>
+    Object.entries(state.relevements || {}).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 40),
+    [state.relevements]);
+
+  const save = () => {
+    haptic(20);
+    setState((s) => ({ ...s, relevements: { ...s.relevements, [today]: { ...form, savedAt: new Date().toISOString() } } }));
+    setMode('done');
+  };
+
+  if (mode === 'done') {
+    return (
+      <div className="page">
+        <button className="back-link" onClick={() => setView('today')}>‹ Aujourd’hui</button>
+        <div className="closed-state">
+          <div className="closed-mark">✦</div>
+          <div className="closed-text">
+            Tu t’es relevé. Voilà ce qui compte.<br /><br />
+            <em>« Sept fois le juste tombe, et il se relève. »</em><br />
+            <span style={{ color: 'var(--muted)', fontSize: 12, letterSpacing: '.12em' }}>PR 24, 16</span>
+          </div>
+          <div className="rel-count">{count} relèvement{count > 1 ? 's' : ''} — autant de fois que tu n’as pas renoncé.</div>
+          <br /><button className="ghost-btn" onClick={() => setMode('history')}>Voir le carnet</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'history') {
+    return (
+      <div className="page">
+        <button className="back-link" onClick={() => setView('today')}>‹ Aujourd’hui</button>
+        <div className="page-title">Relèvements</div>
+        <div className="page-sub">La chute ne te définit pas. Le relèvement, oui.</div>
+        <div className="rel-count" style={{ display: 'block', marginBottom: 18 }}>{count} fois relevé.</div>
+        {existing
+          ? <button className="ghost-btn" style={{ marginBottom: 16 }} onClick={() => { setForm(existing); setMode('form'); }}>Modifier celui d’aujourd’hui</button>
+          : <button className="primary-btn" style={{ marginTop: 0, marginBottom: 20 }} onClick={() => { setForm({ trigger: '', intention: '', note: '' }); setMode('form'); }}>Noter un relèvement</button>}
+        {entries.length === 0 && <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', color: 'var(--muted)' }}>Rien à noter pour l’instant. Tant mieux.</div>}
+        {entries.map(([date, r]) => {
+          const d = new Date(date + 'T12:00');
+          return (
+            <div key={date} className="journal-entry">
+              <div className="journal-date">{formatLongDate(d)}</div>
+              {r.trigger && <div className="journal-line"><b>déclencheur</b>{r.trigger}</div>}
+              {r.intention && <div className="journal-line"><b>relèvement</b>{r.intention}</div>}
+              {r.note && <div className="journal-line"><b>note</b>{r.note}</div>}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // form
+  return (
+    <div className="page">
+      <button className="back-link" onClick={() => setView('today')}>‹ Aujourd’hui</button>
+      <div className="page-title">Me relever</div>
+      <div className="page-sub">Pas pour te juger. Pour comprendre, et repartir plus léger.</div>
+      <div className="even-step">
+        <div className="even-num">i — Honnêteté</div>
+        <div className="even-q">Qu’est-ce qui m’a entraîné ?</div>
+        <textarea className="textarea" placeholder="La situation, l’heure, l’état d’esprit. Sans te flageller — nommer suffit." value={form.trigger} onChange={(e) => setForm({ ...form, trigger: e.target.value })} />
+      </div>
+      <div className="even-step">
+        <div className="even-num">ii — Relèvement</div>
+        <div className="even-q">Une chose, concrète, pour me relever ?</div>
+        <input className="input" placeholder="Une seule. Petite. Faisable demain." value={form.intention} onChange={(e) => setForm({ ...form, intention: e.target.value })} />
+      </div>
+      <div className="even-step">
+        <div className="even-num">iii — Si tu veux</div>
+        <div className="even-q">Quelque chose à confier ?</div>
+        <textarea className="textarea" placeholder="Optionnel." value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+      </div>
+      <button className="primary-btn" onClick={save}>Je me relève</button>
+      <div style={{ textAlign: 'center', marginTop: 12 }}><button className="ghost-btn" onClick={() => setMode('history')}>Voir le carnet</button></div>
     </div>
   );
 }
@@ -712,7 +961,7 @@ function EveningView({ state, saveCheckin }) {
 
 /* ============== SETTINGS ============== */
 
-function SettingsView({ state, setState }) {
+function SettingsView({ state, setState, setView }) {
   const [pillars, setPillars] = useState(state.pillars.map((p) => ({ ...p })));
   const fileRef = useRef(null);
 
@@ -733,7 +982,7 @@ function SettingsView({ state, setState }) {
     reader.onload = (ev) => {
       try {
         const data = JSON.parse(ev.target.result);
-        if (data.version && data.tasks) { setState(data); alert('Données restaurées.'); }
+        if (data.version && data.tasks) { setState({ ...defaultState(), ...data }); alert('Données restaurées.'); }
         else alert('Fichier invalide.');
       } catch { alert('Fichier illisible.'); }
     };
@@ -742,6 +991,7 @@ function SettingsView({ state, setState }) {
 
   return (
     <div className="page">
+      <button className="back-link" onClick={() => setView('today')}>‹ Aujourd’hui</button>
       <div className="page-title">Réglages</div>
       <div className="page-sub">Personnalise tes piliers et protège tes données.</div>
 
@@ -772,20 +1022,66 @@ function SettingsView({ state, setState }) {
 
 /* ============== OVERLAYS ============== */
 
-function UrgeSurf({ onClose, onDone }) {
-  const [count, setCount] = useState(60);
+function Rempart({ onClose, onWin, winCount }) {
+  const [phase, setPhase] = useState('breath'); // breath -> mission -> done
+  const [count, setCount] = useState(12);
+  const quote = useMemo(() => pick(REMPART_QUOTES), []);
+  const [mission, setMission] = useState(() => pick(REMPART_MISSIONS));
+
   useEffect(() => {
-    if (count === 0) { haptic(40); return; }
+    if (phase !== 'breath') return;
+    if (count === 0) { haptic(20); return; }
     const id = setTimeout(() => setCount((c) => c - 1), 1000);
     return () => clearTimeout(id);
-  }, [count]);
-  const done = count === 0;
+  }, [count, phase]);
+
+  const reshuffle = () => {
+    haptic(8);
+    let m = mission;
+    if (REMPART_MISSIONS.length > 1) { while (m === mission) m = pick(REMPART_MISSIONS); }
+    setMission(m);
+  };
+
+  const complete = () => { haptic(40); onWin(); setPhase('done'); };
+
+  if (phase === 'done') {
+    return (
+      <div className="urge-overlay">
+        <div className="urge-label">le rempart a tenu</div>
+        <div className="rempart-mark">✦</div>
+        <div className="rempart-mission" style={{ fontSize: 20 }}>{'Tu n’avais pas besoin d’elle.\nReviens à ce qui compte.'}</div>
+        <div className="rempart-wins">{winCount + 1} fois tu as tenu.</div>
+        <button className="urge-cta primary" style={{ marginTop: 34 }} onClick={onClose}>Revenir au travail</button>
+      </div>
+    );
+  }
+
+  if (phase === 'mission') {
+    return (
+      <div className="urge-overlay">
+        <div className="urge-label">une action, maintenant</div>
+        <div className="rempart-mission">{mission}</div>
+        <button className="urge-cta primary" style={{ marginTop: 30 }} onClick={complete}>C’est fait</button>
+        <button className="urge-cta" onClick={reshuffle}>Une autre mission</button>
+        <button className="ghost-btn" style={{ marginTop: 16, color: 'var(--muted)' }} onClick={onClose}>Plus tard</button>
+      </div>
+    );
+  }
+
+  // breath
+  const ready = count === 0;
   return (
     <div className="urge-overlay">
-      <div className="urge-label">la vague passe</div>
-      <div className="urge-instruction">{done ? 'La compulsion est passée.\nTu n’avais pas besoin d’elle.' : 'Respire avec le cercle.\nL’envie est une vague —\nelle se dissipe si tu ne la nourris pas.'}</div>
-      {!done && <><div className="breath-circle"><div className="breath-inner" /></div><div className="urge-countdown">{count}</div></>}
-      <button className={`urge-cta ${done ? 'primary' : ''}`} onClick={done ? onDone : onClose}>{done ? 'Valider le contrôle' : 'Passer'}</button>
+      <div className="urge-label">le rempart tient</div>
+      <div className="rempart-quote">« {quote.text} »<span className="rempart-quote-author">{quote.author}</span></div>
+      <div className="breath-circle"><div className="breath-inner" /></div>
+      {!ready && <div className="urge-countdown">{count}</div>}
+      <button
+        className={`urge-cta ${ready ? 'primary' : ''}`}
+        onClick={ready ? () => { haptic(12); setPhase('mission'); } : onClose}
+      >
+        {ready ? 'Ma mission' : 'Passer'}
+      </button>
     </div>
   );
 }
@@ -804,10 +1100,10 @@ function RankUp({ rank, onClose }) {
 function BottomNav({ view, setView }) {
   const tabs = [
     { key: 'today', label: 'Aujourd\u2019hui' },
+    { key: 'source', label: 'Source' },
     { key: 'vitality', label: 'Vitalité' },
     { key: 'week', label: 'Semaine' },
     { key: 'evening', label: 'Soir' },
-    { key: 'settings', label: 'Réglages' },
   ];
   return (
     <nav className="nav">
@@ -831,19 +1127,21 @@ export default function App() {
   const completeOnboarding = (pillars) => setState((s) => ({ ...s, pillars, onboarded: true }));
   const saveCheckin = (date, c) => setState((s) => ({ ...s, checkins: { ...s.checkins, [date]: c } }));
 
-  const onUrgeDone = () => {
+  const onRempartWin = () => {
     const today = toISODate();
     const controlKey = state.pillars[3]?.key;
     const prevPoints = totalPoints(state.tasks, state.pillars);
     const dayTasks = state.tasks[today] || {};
+    const curRempart = state.rempart || {};
+    const newRempart = { ...curRempart, [today]: (curRempart[today] || 0) + 1 };
+    let newTasks = state.tasks;
     if (controlKey && !dayTasks[controlKey]) {
-      const newDay = { ...dayTasks, [controlKey]: true };
-      setState((s) => ({ ...s, tasks: { ...s.tasks, [today]: newDay } }));
-      const newPoints = totalPoints({ ...state.tasks, [today]: newDay }, state.pillars);
+      newTasks = { ...state.tasks, [today]: { ...dayTasks, [controlKey]: true } };
+      const newPoints = totalPoints(newTasks, state.pillars);
       if (currentRank(prevPoints).current.name !== currentRank(newPoints).current.name)
-        setTimeout(() => setRankUp(currentRank(newPoints).current.name), 350);
+        setTimeout(() => setRankUp(currentRank(newPoints).current.name), 600);
     }
-    setUrgeOpen(false);
+    setState((s) => ({ ...s, tasks: newTasks, rempart: newRempart }));
   };
 
   if (!state.onboarded) {
@@ -857,19 +1155,21 @@ export default function App() {
       <style>{css}</style>
       <div className="app">
         <header className="header">
+          <button className="gear-btn" onClick={() => { haptic(8); setView('settings'); }} aria-label="Réglages"><GearIcon /></button>
           <div className="h-date">{formatLongDate(new Date())}</div>
           <div className="h-saint">{getLiturgy(new Date()).saint}</div>
         </header>
-        {view === 'today' && <TodayView state={state} setState={setState} openUrge={() => setUrgeOpen(true)} onRankUp={(r) => setRankUp(r)} />}
+        {view === 'today' && <TodayView state={state} setState={setState} openUrge={() => setUrgeOpen(true)} openRelevement={() => setView('relevement')} onRankUp={(r) => setRankUp(r)} />}
+        {view === 'source' && <SourceView />}
+        {view === 'relevement' && <RelevementView state={state} setState={setState} setView={setView} />}
         {view === 'vitality' && <VitalityView state={state} setState={setState} />}
         {view === 'week' && <WeekView state={state} />}
         {view === 'evening' && <EveningView state={state} saveCheckin={saveCheckin} />}
-        {view === 'settings' && <SettingsView state={state} setState={setState} />}
+        {view === 'settings' && <SettingsView state={state} setState={setState} setView={setView} />}
         <BottomNav view={view} setView={setView} />
-        {urgeOpen && <UrgeSurf onClose={() => setUrgeOpen(false)} onDone={onUrgeDone} />}
+        {urgeOpen && <Rempart onClose={() => setUrgeOpen(false)} onWin={onRempartWin} winCount={totalRempart(state.rempart)} />}
         {rankUp && <RankUp rank={rankUp} onClose={() => setRankUp(null)} />}
       </div>
     </>
   );
 }
-
